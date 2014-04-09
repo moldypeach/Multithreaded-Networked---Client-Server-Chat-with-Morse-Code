@@ -213,3 +213,5 @@ pip-log.txt
 
 #Mr Developer
 .mr.developer.cfg
+/NetworkedMorseCode_server/nbproject/private/
+/NetworkedMorseCode_client/nbproject/private/
