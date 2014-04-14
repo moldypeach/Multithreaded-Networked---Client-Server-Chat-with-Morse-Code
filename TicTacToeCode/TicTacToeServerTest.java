@@ -1,16 +1,16 @@
-// Fig. 27.6: ServerTest.java
-// Test the Server application.
+// Fig. 27.14: TicTacToeServerTest.java
+// Class that tests Tic-Tac-Toe server.
 import javax.swing.JFrame;
 
-public class ServerTest
+public class TicTacToeServerTest
 {
    public static void main( String[] args )
    {
-      Server application = new Server(); // create server
+      TicTacToeServer application = new TicTacToeServer();
       application.setDefaultCloseOperation( JFrame.EXIT_ON_CLOSE );
-      application.runServer(); // run server application
+      application.execute();
    } // end main
-} // end class ServerTest
+} // end class TicTacToeServerTest
 
 /**************************************************************************
  * (C) Copyright 1992-2012 by Deitel & Associates, Inc. and               *

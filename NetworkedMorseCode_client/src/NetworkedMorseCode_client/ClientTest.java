@@ -1,5 +1,8 @@
+package NetworkedMorseCode_client;
+
 // Fig. 27.8: ClientTest.java
 // Class that tests the Client.
+import NetworkedMorseCode_client.Client;
 import javax.swing.JFrame;
 
 public class ClientTest 
