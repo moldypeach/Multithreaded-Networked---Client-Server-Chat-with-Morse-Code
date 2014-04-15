@@ -177,7 +177,7 @@ public class Client extends JFrame
       try
       {
         // create Socket to make connection to server
-        client = new Socket( InetAddress.getByName( chatServer ), 12345 );
+        client = new Socket( InetAddress.getByName( chatServer ), 61000 );
       }
       catch(IOException e)
       {
