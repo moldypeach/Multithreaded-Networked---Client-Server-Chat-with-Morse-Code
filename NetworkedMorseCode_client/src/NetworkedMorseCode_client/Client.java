@@ -93,14 +93,21 @@ public class Client extends JFrame
             @Override
             public void windowClosing( WindowEvent e)
             {
-                // If a connection was open on window close, force method
-                // closeConnection() to run
-                if (openConnection)
-                {
-                    sendData("\\quit");
-                    openConnection = false;
-                }
-                dispose(); // Releases all resources used by this Window
+                SwingUtilities.invokeLater(
+                   new Runnable()
+                   {
+                      public void run() // Updates displayArea
+                      {
+                        if (openConnection)
+                        {
+                            sendData("\\quit");
+                            openConnection = false;
+                        }
+                        dispose();
+                        System.exit(1);                          
+                      } // End run() method
+                   }  // End anonymous inner class
+                ); // End SwingUtilities.invokeLater
             } // End windowClosing() method
         } // End anonymouse inner class
       ); // End addWindowListener()
