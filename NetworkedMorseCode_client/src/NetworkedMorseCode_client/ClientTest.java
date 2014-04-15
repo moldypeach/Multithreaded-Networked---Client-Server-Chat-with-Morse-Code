@@ -25,7 +25,7 @@ public class ClientTest
 
       // if no command line args, use localhost
       if ( args.length == 0 )
-         application = new Client( "74.75.179.98" ); // connect to localhost
+         application = new Client( "127.0.0.1" ); // connect to localhost
       // else try opening the host specified as command line argument
       else
          application = new Client( args[ 0 ] ); // use args to connect
