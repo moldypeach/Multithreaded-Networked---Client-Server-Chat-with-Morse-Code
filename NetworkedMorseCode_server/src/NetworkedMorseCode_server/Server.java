@@ -1,35 +1,44 @@
+/* Filename:        Server.java
+ * Last Modified:   15 April 2014
+ * Author:          Todd Parker
+ * Email:           todd.i.parker@maine.edu
+ * Course:          CIS314 - Advanced Java
+ * 
+ * Server.java creates a GUI window for logging server messages, creates a
+ * server socket and then calls server.accept() to block until a client connect-
+ * ion is detected and created. Method execute() is called from main to initiate
+ * and execute client connections, and runs until the server application is 
+ * either terminated or reaches 100 connected clients. Each connected client
+ * is added to a clients List as a Runnable in its own thread. Each client's 
+ * constructor initializes its connection and gets the I/O streams, and then
+ * method run() calls method processConnection(); which, loops indefinitely
+ * until the server receives a "\\quit" message from a client. Upon detection
+ * of a quit message, the client calls method removeClient() to delete itself
+ * from the clients list, and then the thread is interrupted.
+ *
+ * NOTE: Some code of this class was modified from the course textbook
+ * (C) Copyright 1992-2012 by Deitel & Associates, Inc. and Pearson Education, 
+ * Inc. All Rights Reserved.   
+ */
 package NetworkedMorseCode_server;
 
-// Fig. 27.5: Server.java
-// Server portion of a client/server stream-socket connection. 
-import java.io.EOFException;
-import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
-import java.net.ServerSocket;
-import java.net.Socket;
-import java.awt.BorderLayout;
-import java.awt.Color;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
+import java.io.*;
+import java.net.*;
+import java.awt.*;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import javax.swing.JFrame;
-import javax.swing.JScrollPane;
-import javax.swing.JTextArea;
-import javax.swing.SwingUtilities;
+import java.util.concurrent.*;
+import javax.swing.*;
 
 public class Server extends JFrame 
 {
-   private JTextArea displayArea; // display information to user
-   private ServerSocket server; // server socket  
-   private ExecutorService runChat; // will run chat
-   private List<chatClient> clients;
-   private int removeClientNum;
+   private JTextArea displayArea; // Display information to user
+   private ServerSocket server; // Server socket  
+   private ExecutorService runChat; // Runs chat
+   private List<chatClient> clients; // List of connected clients
+//   private int removeClientNum; // Flag to remove a client from clients
 
-   // set chat server and GUI that displays server exchanges
+   // Constructor sets up server and GUI
    public Server()
    {
       super( "Aurora Server" );
@@ -37,9 +46,9 @@ public class Server extends JFrame
        // create ExecutorService with a thread for each player
       runChat = Executors.newCachedThreadPool();
       clients = new ArrayList<>();
-      removeClientNum = -1;
+//      removeClientNum = -1;
       
-      try // set up server to receive connections; process connections
+      try // Set up server to receive connections; process connections
       {
          server = new ServerSocket( 12345, 100 ); // create ServerSocket
       } // end try
@@ -48,106 +57,107 @@ public class Server extends JFrame
          ioException.printStackTrace();
       } // end catch      
       
-      displayArea = new JTextArea(); // create displayArea
-      displayArea.setEditable(false);
+      displayArea = new JTextArea(); // Create display area
+      displayArea.setEditable(false); // Disallow input to display area
       displayArea.setBackground(Color.BLACK);
       displayArea.setForeground(Color.GREEN);
+      // Add displayArea to JFrame
       add( new JScrollPane( displayArea ), BorderLayout.CENTER );
 
-      setSize( 600, 300 ); // set size of window
-      setVisible( true ); // show window
+      setSize( 600, 300 ); // Set size of server window
+      setVisible( true ); // Show window
       displayMessage("Morse Code server started");
    } // end Server constructor
 
-   // set up and run server 
+   // Run server 
    public void execute()
    {
        
-       while ( clients.size() < 100 ) 
+       while ( clients.size() < 100 ) // While less than 100 connected clients
        {
           try 
           {
+              // Add a new client, passing current list size as client number
              clients.add( new chatClient( server.accept(), clients.size()) );
              displayMessage( "Connection " + clients.size() + " received from: "
                              + clients.get(clients.size() -1 ).connection.getInetAddress().getHostName() );             
-             runChat.execute(clients.get(clients.size() -1 )); // execute chatClient runnable
-          } // end try
+             // Execute chatClient as runnable (i.e. in its own thread)
+             runChat.execute(clients.get(clients.size() -1 ));
+          } // End try
           catch ( IOException ioException ) 
           {
              ioException.printStackTrace();
-          } // end catch
-       } // end while       
-   } // end method execute
+          } // End catch
+       } // End while       
+   } // End execute() method
 
-   // wait for connection to arrive, then display connection info
+   // Display a server message
    private void displayMessage( final String messageToDisplay)
    {
        SwingUtilities.invokeLater(
                new Runnable()
                {
-                   public void run() // updates display Area
+                   public void run() // Updates display Area
                    {
-                       displayArea.append( messageToDisplay + "\n"); // append message
-                   } // end run method
-               } // end anonymous inner class
-       ); // end call to SwingUtilities.invokeLate
-   } // end displayMessage method
+                       // Append message
+                       displayArea.append( messageToDisplay + "\n");
+                   } // End run method
+               } // End anonymous inner class
+       ); // End SwingUtilities.invokeLate
+   } // End displayMessage() method
    
-      // send message to client all connected clients
+   // Send message to all connected clients
    private void sendData( String message )
    {
-      try // send object to client
+      try // Send object to client
       {
-          if(removeClientNum >= 0)
-          {
-              removeClient();
-          }
-
-          for (chatClient client : clients)
+          for (chatClient client : clients) // For each connected client
           {
               client.output.writeObject( message );
               client.output.flush(); // flush output to client
-          }            
+          } // End for each connected client    
       } // end try
       catch ( IOException ioException ) 
       {
          displayMessage( "Error writing object" );
-      } // end catch
-   } // end method sendData
+      } // End catch
+   } // End sendData() method
    
-    private void removeClient()
+   // Remove the passed client number from clients list and reorder client numbers
+    private void removeClient( int removeClientNum)
     {
           displayMessage("Removing client " + removeClientNum);
-          clients.remove(removeClientNum);
-          // if there is more than one client, and it isn't the last one in list
-          if ( (clients.size() > 0) && (removeClientNum < clients.size() -1) )
+          clients.remove(removeClientNum); // Remove client from list
+          // If there was more than one client, and the client removed was not
+          // the last client in the list
+          if ( (clients.size() > 0) && (removeClientNum < clients.size() ) )
           {   
-              // reorder clientNumbers
+              // Reorder client numbers
               for (chatClient client : clients)
               {
-                  if( client.clientNumber != 0)
+                  if( client.clientNumber != 0) // Ignore client number 0
                     client.clientNumber -= 1;
-              }
+              } // End for reorder client numbers
           }
-          removeClientNum = -1;
           displayMessage("Clients renumbered");
     } // end removeClient() method
    
-   // private inner class Player manages each Player as a runnable
+   // private inner class chatClient manages each chatClient as a runnable
    private class chatClient implements Runnable 
    {
-       private ObjectOutputStream output; // output stream to client 
-       private ObjectInputStream input; // input stream from client       
-       private Socket connection; // connection to client
-       private int clientNumber; // track client number
-       private String clientName;
-       private Boolean openConnection;
+       private ObjectOutputStream output; // Output stream to client 
+       private ObjectInputStream input; // Input stream from client       
+       private Socket connection; // Connection to client
+       private int clientNumber; // Track client number
+       private String clientName; // Track client name
+       private Boolean openConnection; // State of connection (i.e. open/closed)
 
-      // set up chatClient thread
+      // Constructor sets up chatClient thread
       public chatClient( Socket socket, int number )
       {
-         connection = socket; // store socket for client
-         // get input & output streams
+         connection = socket; // Store socket for client
+         clientNumber = number; // Store client number 
+         // Get I/O streams
          try
          {
              getStreams();
@@ -156,11 +166,10 @@ public class Server extends JFrame
          {
              ioException.printStackTrace();
          }
-         clientNumber = number;
          openConnection = true;
-      } // end Player constructor
+      } // End Player constructor
 
-   // get streams to send and receive data
+   // Get I/O streams
    private void getStreams() throws IOException
    {
       // set up output stream for object
@@ -176,80 +185,69 @@ public class Server extends JFrame
       catch ( ClassNotFoundException classNotFoundException )
       {}
       displayMessage("Got I/O streams for client " + clientName + "(" + clientNumber + ")");
-   } // end method getStreams
+   } // End getStreams() methods
    
-   // process connection with client
+   // Process connection with client
    private void processConnection() throws IOException
    {
       String message = "Client connection " + clientNumber + " successful";
-//      sendData( clients ); // send connection successful message
 
-      while( openConnection ) // process messages sent from client
+      // While client has an open connection to server, process messages
+      while( openConnection )
       { 
-         try // read message and display it
+         try // Read message and display it
          {
-            message = ( String ) input.readObject(); // read new message
-            if( message.equalsIgnoreCase("\\quit") )
+            message = ( String ) input.readObject(); // Read new message
+            if( message.equalsIgnoreCase("\\quit") ) // If client is closed
                 openConnection = false;
-            else
+            else // Else send message to all connected clients
                 sendData( clientName + "\n" + message );
-         } // end try
+         } // End try
          catch ( ClassNotFoundException classNotFoundException ) 
          {
             sendData( "Unknown object type received" );
-         } // end catch
+         } // End catch
 
-      }
-   } // end method processConnection
+      } // End while client has an open connection to server
+   } // End method processConnection
 
-   // close streams and socket
+   // Close I/O streams and socket
    private void closeConnection() 
    {
-       displayMessage("\nTerminating connection for client " + clientNumber + "\n");
-//       sendData( "\nTerminating connection for client " + clientNumber + "\n" );
-      
+       displayMessage("\nTerminating connection for client " + clientNumber + "\n");      
       try 
       {
-//          clients.get(clientNumber).output.writeObject( "false" );
-//          clients.get(clientNumber).output.flush();
-          output.close(); // close output stream
-          input.close(); // close input stream
-          connection.close(); // close socket
+          output.close(); // Close output stream
+          input.close(); // Close input stream
+          connection.close(); // Close socket
       } // end try
       catch ( IOException ioException ) 
       {
          ioException.printStackTrace();
-      } // end catch
-   } // end method closeConnection   
+      } // End catch
+   } // End closeConnection() method
    
-      // control thread's execution
+      // Control thread's execution
       public void run()
       {
-          
-         while ( openConnection ) 
-         {
             try 
             {
-               processConnection(); // process connection
-            } // end try
+                processConnection(); // Process connection
+            } // End try
             catch ( EOFException eofException ) 
             {
-               sendData( "\nServer terminated connection for client " + clientNumber + "\n" );
-            } // end catch
+                sendData( "\nServer terminated connection for client " + clientNumber + "\n" );
+            } // End catch
             catch ( IOException ioException ) 
             {
-               ioException.printStackTrace();
-            } // end catch            
+                ioException.printStackTrace();
+            } // End catch            
             finally 
             {
-               closeConnection(); //  close connection
-               removeClientNum = clientNumber;
-               Thread.currentThread().interrupt();
-            } // end finally
-         } // end while
-         
-      } // end method run
-   } // end class Player   
-   
-   
-} // end class Server
+                closeConnection(); //  Close connection
+                removeClient(clientNumber); // Remove client from clients
+                Thread.currentThread().interrupt(); // End thread
+            } // End finally
+      } // End run() method
+   } // End Player class   
+} // End Server class
